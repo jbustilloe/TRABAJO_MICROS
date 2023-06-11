@@ -49,34 +49,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := Trabajo_micro
+BUILD_ARTIFACT_NAME := TRABAJO_MICROS
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-Trabajo_micro.elf \
+TRABAJO_MICROS.elf \
 
 MAP_FILES += \
-Trabajo_micro.map \
+TRABAJO_MICROS.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-Trabajo_micro.list \
+TRABAJO_MICROS.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: Trabajo_micro.elf secondary-outputs
+main-build: TRABAJO_MICROS.elf secondary-outputs
 
 # Tool invocations
-Trabajo_micro.elf Trabajo_micro.map: $(OBJS) $(USER_OBJS) C:\Users\jeffe\STM32CubeIDE\workspace_1.10.1\Trabajo_micro\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "Trabajo_micro.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jeffe\STM32CubeIDE\workspace_1.10.1\Trabajo_micro\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Trabajo_micro.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+TRABAJO_MICROS.elf TRABAJO_MICROS.map: $(OBJS) $(USER_OBJS) C:\Users\jeffe\STM32CubeIDE\workspace_1.10.1\TRABAJO_MICROS\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "TRABAJO_MICROS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jeffe\STM32CubeIDE\workspace_1.10.1\TRABAJO_MICROS\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TRABAJO_MICROS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -85,14 +85,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Trabajo_micro.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Trabajo_micro.list"
+TRABAJO_MICROS.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TRABAJO_MICROS.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) Trabajo_micro.elf Trabajo_micro.list Trabajo_micro.map default.size.stdout
+	-$(RM) TRABAJO_MICROS.elf TRABAJO_MICROS.list TRABAJO_MICROS.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

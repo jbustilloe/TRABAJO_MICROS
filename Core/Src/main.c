@@ -11,144 +11,164 @@ GPIO_InitTypeDef GPIO_InitStruct;
 
 
 
-// Definición de pines para el sensor 1
-#define SENSOR1_TRIGGER_PIN GPIO_PIN_0
-#define SENSOR1_TRIGGER_PORT GPIOA
-#define SENSOR1_ECHO_PIN GPIO_PIN_1
-#define SENSOR1_ECHO_PORT GPIOA
+// Definiciones de pin
+#define TRIGGER_PIN1  GPIO_PIN_0
+#define ECHO_PIN1     GPIO_PIN_1
+#define BUTTON1_PIN   GPIO_PIN_2
+#define LED1_PIN      GPIO_PIN_0
 
-// Definición de pines para el sensor 2
-#define SENSOR2_TRIGGER_PIN GPIO_PIN_7
-#define SENSOR2_TRIGGER_PORT GPIOC
-#define SENSOR2_ECHO_PIN GPIO_PIN_6
-#define SENSOR2_ECHO_PORT GPIOC
+#define TRIGGER_PIN2  GPIO_PIN_7
+#define ECHO_PIN2     GPIO_PIN_6
+#define BUTTON2_PIN   GPIO_PIN_3
+#define LED2_PIN      GPIO_PIN_1
 
-// Definición de pines para los LEDs
-#define LED1_PIN GPIO_PIN_0
-#define LED1_PORT GPIOB
-#define LED2_PIN GPIO_PIN_1
-#define LED2_PORT GPIOB
+#define SENSOR1_PORT GPIOA
+#define SENSOR2_PORT GPIOC
+#define BUTTON_PORT  GPIOA
+#define LED_PORT     GPIOB
+
+#define SPEED_OF_SOUND 343.0f // Velocidad del sonido para el sensor de proximidad
+#define TIMER_CLOCK_FREQ 1000000.0f // Frecuencia de reloj del temporizador
+
+// Variables globales
+volatile uint32_t Sensor1Duration = 0, Sensor2Duration = 0;
+volatile uint8_t button1_status = 0, button2_status = 0;
+
+// Prototipos de función
+void Trigger_Sensor1(void);
+void Trigger_Sensor2(void);
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_TIM2_Init(void);
+void MX_GPIO_Init(void);
+void MX_TIM2_Init(void);
+
+
+//static void MX_GPIO_Init(void);
+//static void MX_TIM2_Init(void);
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);
 
-uint32_t distance1 = 0; // Variable para almacenar la distancia medida por Sensor 1
-uint32_t distance2 = 0; // Variable para almacenar la distancia medida por Sensor 2
+
+// Inicialización del TIM2
+void MX_TIM2_Init(void) {
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 0xFFFFFFFF;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+
+void Trigger_Sensor1(void) {
+  // Genera un pulso de 10us en el pin TRIGGER
+  HAL_GPIO_WritePin(SENSOR1_PORT, TRIGGER_PIN1, GPIO_PIN_SET);
+  HAL_Delay(10);
+  HAL_GPIO_WritePin(SENSOR1_PORT, TRIGGER_PIN1, GPIO_PIN_RESET);
+}
+
+void Trigger_Sensor2(void) {
+  // Genera un pulso de 10us en el pin TRIGGER
+  HAL_GPIO_WritePin(SENSOR2_PORT, TRIGGER_PIN2, GPIO_PIN_SET);
+  HAL_Delay(10);
+  HAL_GPIO_WritePin(SENSOR2_PORT, TRIGGER_PIN2, GPIO_PIN_RESET);
+}
+
+// Interrupción EXTI
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+  static uint32_t Sensor1StartTick = 0, Sensor2StartTick = 0;
+
+  // Pin ECHO del Sensor 1
+  if (GPIO_Pin == ECHO_PIN1) {
+    if (HAL_GPIO_ReadPin(SENSOR1_PORT, ECHO_PIN1) == GPIO_PIN_SET) {
+      // Comenzó el pulso ECHO, así que obtenemos el tiempo de inicio
+      Sensor1StartTick = HAL_GetTick();
+    } else {
+      // Terminó el pulso ECHO, así que calculamos la duración
+      Sensor1Duration = HAL_GetTick() - Sensor1StartTick;
+    }
+  }
+
+  // Pin ECHO del Sensor 2
+  else if (GPIO_Pin == ECHO_PIN2) {
+    if (HAL_GPIO_ReadPin(SENSOR2_PORT, ECHO_PIN2) == GPIO_PIN_SET) {
+      // Comenzó el pulso ECHO, así que obtenemos el tiempo de inicio
+      Sensor2StartTick = HAL_GetTick();
+    } else {
+      // Terminó el pulso ECHO, así que calculamos la duración
+      Sensor2Duration = HAL_GetTick() - Sensor2StartTick;
+    }
+  }
+
+  // Botones
+  else if (GPIO_Pin == BUTTON1_PIN) {
+    button1_status = !button1_status; // Cambia el estado del botón 1
+    HAL_GPIO_WritePin(LED_PORT, LED1_PIN, button1_status ? GPIO_PIN_SET : GPIO_PIN_RESET); // Actualiza el LED 1
+  }
+  else if (GPIO_Pin == BUTTON2_PIN) {
+    button2_status = !button2_status; // Cambia el estado del botón 2
+    HAL_GPIO_WritePin(LED_PORT, LED2_PIN, button2_status ? GPIO_PIN_SET : GPIO_PIN_RESET); // Actualiza el LED 2
+  }
+}
 
 int main(void)
 {
-//PROBANDO PARA GITHUB
-  /* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
 
   /* Configure the system clock */
 
   SystemClock_Config();
 
-  // Habilitar el reloj del puerto GPIO
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  // Habilitar el reloj de GPIOA
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  // Habilitar el reloj de GPIOC
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /* USER CODE BEGIN SysInit */
   MX_GPIO_Init();
   MX_TIM2_Init();
 
-  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-
-  /* USER CODE BEGIN 2 */
-
-  // Función para activar el trigger y enviar la señal ultrasónica
-  void activateTrigger(GPIO_TypeDef* triggerPort, uint16_t triggerPin)
-  {
-      // Generar pulso de 10 microsegundos en el pin del trigger
-      HAL_GPIO_WritePin(triggerPort, triggerPin, GPIO_PIN_SET);
-      HAL_Delay(10);
-      HAL_GPIO_WritePin(triggerPort, triggerPin, GPIO_PIN_RESET);
-  }
-
-  // Función para obtener la distancia medida por el sensor
-  float getDistance(GPIO_TypeDef* echoPort, uint16_t echoPin)
-  {
-      // Implementa el código para medir el tiempo de eco y calcular la distancia
-      // usando el pin de eco correspondiente al sensor
-  }
-
-  // Función para controlar los LEDs
-  void controlLEDs(GPIO_TypeDef* led1Port, uint16_t led1Pin, GPIO_TypeDef* led2Port, uint16_t led2Pin)
-  {
-      // Encender los LEDs
-      HAL_GPIO_WritePin(led1Port, led1Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(led2Port, led2Pin, GPIO_PIN_SET);
-
-      // Esperar 3 segundos
-      HAL_Delay(3000);
-
-      // Apagar los LEDs
-      HAL_GPIO_WritePin(led1Port, led1Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(led2Port, led2Pin, GPIO_PIN_RESET);
-  }
-
-
-
-
-  /* USER CODE END 2 */
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // Control de los LEDs mediante los pulsadores
+	    // Activar los sensores
+	    Trigger_Sensor1();
+	    HAL_Delay(60);
+	    Trigger_Sensor2();
+	    HAL_Delay(60);
 
-    // Leer el estado del pulsador 1
-    GPIO_PinState btn1_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
+	    // Calcular las distancias
+	    float Sensor1Distance = (Sensor1Duration * SPEED_OF_SOUND) / (2.0f * TIMER_CLOCK_FREQ);
+	    float Sensor2Distance = (Sensor2Duration * SPEED_OF_SOUND) / (2.0f * TIMER_CLOCK_FREQ);
 
-    // Encender o apagar el LED del Área 1 según el estado del pulsador 1
-    if (btn1_state == GPIO_PIN_SET)
-    {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET); // Encender el LED del Área 1
-      HAL_Delay(2000); // Mantener el LED encendido durante 6 segundos
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET); // Apagar el LED del Área 1
-    }
-    else
-    {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET); // Apagar el LED del Área 1
-    }
+	    // Actualizar los LEDs en función de los sensores y los botones
+	    if (!button1_status && Sensor1Distance < 0.05f) {
+	      // Solo se activa el LED si el botón no está activado y el sensor detecta un objeto a menos de 5 cm
+	      HAL_GPIO_WritePin(LED_PORT, LED1_PIN, GPIO_PIN_SET);
+	    }
 
-    // Leer el estado del pulsador 2
-    GPIO_PinState btn2_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3);
+	    if (!button2_status && Sensor2Distance < 0.02f) {
+	      // Solo se activa el LED si el botón no está activado y el sensor detecta un objeto a menos de 2 cm
+	      HAL_GPIO_WritePin(LED_PORT, LED2_PIN, GPIO_PIN_SET);
+	    }
 
-    // Encender o apagar el LED del Área 2 según el estado del pulsador 2
-    if (btn2_state == GPIO_PIN_SET)
-    {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET); // Encender el LED del Área 2
-      HAL_Delay(2000); // Mantener el LED encendido durante 6 segundos
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET); // Apagar el LED del Área 2
-    }
-    else
-    {
-     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET); // Apagar el LED del Área 2
-    }
+
   }
 }
 
@@ -191,181 +211,70 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  //SENSORES PROXIMIDAD
 
-  // Configuración del sensor 1
-  GPIO_InitStruct.Pin = SENSOR1_TRIGGER_PIN; // Pin de trigger del Sensor 1
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
+
+
+void MX_GPIO_Init(void) {
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Activar el Reloj GPIO */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /* Configurar los pines GPIO */
+  // Pines de TRIGGER como salida
+  GPIO_InitStruct.Pin = TRIGGER_PIN1;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SENSOR1_TRIGGER_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(SENSOR1_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = SENSOR1_ECHO_PIN; // Pin de echo del Sensor 1
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Entrada
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
+  GPIO_InitStruct.Pin = TRIGGER_PIN2;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SENSOR1_ECHO_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(SENSOR2_PORT, &GPIO_InitStruct);
 
-  // Configuración del sensor 2
-  GPIO_InitStruct.Pin = SENSOR2_TRIGGER_PIN; // Pin de trigger del Sensor 2
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
+  // Pines de ECHO como entrada
+  GPIO_InitStruct.Pin = ECHO_PIN1;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(SENSOR1_PORT, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = ECHO_PIN2;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(SENSOR2_PORT, &GPIO_InitStruct);
+
+  // Pines de los botones como entrada
+  GPIO_InitStruct.Pin = BUTTON1_PIN | BUTTON2_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_PORT, &GPIO_InitStruct);
+
+  // Pines de LED como salida
+  GPIO_InitStruct.Pin = LED1_PIN | LED2_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SENSOR2_TRIGGER_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = SENSOR2_ECHO_PIN; // Pin de echo del Sensor 2
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Entrada
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SENSOR2_ECHO_PORT, &GPIO_InitStruct);
+  /* Configurar interrupciones EXTI */
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-/*  GPIO_InitStruct.Pin = GPIO_PIN_0; // Pin de trigger del Sensor 1
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_1; // Pin de echo del Sensor 1
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING; // Interrupción en flancos de subida y bajada
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN; // Resistencia pull-down
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_7; // Pin de trigger del Sensor 2
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_6; // Pin de echo del Sensor 2
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING; // Interrupción en flancos de subida y bajada
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN; // Resistencia pull-down
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);*/
-
-
-  // LEDS
-
-  GPIO_InitStruct.Pin = GPIO_PIN_0; // Pin del LED del Área 1
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_1; // Pin del LED del Área 2
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // Salida push-pull
-  //GPIO_InitStruct.Pull = GPIO_NOPULL; // Sin resistencia pull
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-
-  //PULSADORES
-
-  GPIO_InitStruct.Pin = GPIO_PIN_2; // Pin del pulsador 1
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Entrada
-  GPIO_InitStruct.Pull = GPIO_PULLUP; // Resistencia pull-up
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_3; // Pin del pulsador 2
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Entrada
-  GPIO_InitStruct.Pull = GPIO_PULLUP; // Resistencia pull-up
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 }
 
-/* USER CODE BEGIN 4 */
-
-static void MX_TIM2_Init(void)
-{
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_IC_InitTypeDef sConfigIC = {0};
-
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 83; // Frecuencia de conteo de 1 MHz
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0xFFFFFFFF;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  // Configuración para el canal 1 (Sensor 1)
-  sConfigIC.ICPolarity = TIM_ICPOLARITY_BOTHEDGE; // Flancos de subida y bajada
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI; // Selección directa del canal
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1; // Sin prescaler
-  sConfigIC.ICFilter = 0; // Sin filtro
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  // Configuración para el canal 2 (Sensor 2)
-  sConfigIC.ICPolarity = TIM_ICPOLARITY_BOTHEDGE; // Flancos de subida y bajada
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI; // Selección directa del canal
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1; // Sin prescaler
-  sConfigIC.ICFilter = 0; // Sin filtro
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-  if (htim->Instance == TIM2)
-  {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-    {
-      distance1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Lee el valor capturado del Sensor 1
-      distance1 = distance1 / 58; // Convierte el valor a distancia en cm
-
-      // Encender el LED del Área 1 durante 6 segundos si se detecta una señal
-      if (distance1 <= 5)
-      {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET); // Encender el LED del Área 1
-        HAL_Delay(6000); // Mantener el LED encendido durante 6 segundos
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET); // Apagar el LED del Área 1
-      }
-    }
-    else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
-    {
-      distance2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2); // Lee el valor capturado del Sensor 2
-      distance2 = distance2 / 58; // Convierte el valor a distancia en cm
-
-      // Encender el LED del Área 2 durante 6 segundos si se detecta una señal
-      if (distance2 <= 2)
-      {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET); // Encender el LED del Área 2
-        HAL_Delay(6000); // Mantener el LED encendido durante 6 segundos
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET); // Apagar el LED del Área 2
-      }
-    }
-  }
-}
 
 void Error_Handler(void)
 {
