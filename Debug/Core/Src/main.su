@@ -1,8 +1,0 @@
-../Core/Src/main.c:53:6:MX_TIM2_Init	32	static
-../Core/Src/main.c:81:6:Trigger_Sensor1	8	static
-../Core/Src/main.c:88:6:Trigger_Sensor2	8	static
-../Core/Src/main.c:96:6:HAL_GPIO_EXTI_Callback	16	static
-../Core/Src/main.c:132:5:main	16	static
-../Core/Src/main.c:176:6:SystemClock_Config	88	static
-../Core/Src/main.c:217:6:MX_GPIO_Init	40	static
-../Core/Src/main.c:279:6:Error_Handler	4	static

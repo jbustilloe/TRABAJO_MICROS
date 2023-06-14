@@ -390,7 +390,6 @@ GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
   return bitstatus;
 }
 
-
 /**
   * @brief  Sets or clears the selected data port bit.
   *
