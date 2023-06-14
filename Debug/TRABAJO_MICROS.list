@@ -1074,8 +1074,8 @@ int main(void)
  8000d40:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
  8000d44:	d506      	bpl.n	8000d54 <main+0x4c>
     {
-      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
- 8000d46:	2201      	movs	r2, #1
+      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+ 8000d46:	2200      	movs	r2, #0
  8000d48:	f44f 5180 	mov.w	r1, #4096	; 0x1000
  8000d4c:	4805      	ldr	r0, [pc, #20]	; (8000d64 <main+0x5c>)
  8000d4e:	f000 fd03 	bl	8001758 <HAL_GPIO_WritePin>
@@ -1083,8 +1083,8 @@ int main(void)
     }
     else
     {
-      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
- 8000d54:	2200      	movs	r2, #0
+      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+ 8000d54:	2201      	movs	r2, #1
  8000d56:	f44f 5180 	mov.w	r1, #4096	; 0x1000
  8000d5a:	4802      	ldr	r0, [pc, #8]	; (8000d64 <main+0x5c>)
  8000d5c:	f000 fcfc 	bl	8001758 <HAL_GPIO_WritePin>
