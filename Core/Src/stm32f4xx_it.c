@@ -31,7 +31,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TRIGGER_PIN GPIO_PIN_0
+#define TRIGGER_PORT GPIOA
+#define ECHO_PIN GPIO_PIN_1
+#define ECHO_PORT GPIOA
+#define OUTPUT_PIN GPIO_PIN_2
+#define OUTPUT_PORT GPIOA
+#define DISTANCE_THRESHOLD 5
+#define TRIGGER_DURATION_US 10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -41,7 +48,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+extern TIM_HandleTypeDef htim2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
