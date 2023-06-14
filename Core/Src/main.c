@@ -17,12 +17,10 @@ void Display_SafeZone(void);
 /* Global Variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
 uint32_t distance_timer = 0;
-uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
+uint32_t LED_timeout = 6000;  // Timeout de 3 segundos
 
 /* LCD I2C Handle */
-//extern I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c1;
-
 
 /* USER CODE BEGIN 0 */
 #define TRIGGER_PIN GPIO_PIN_10
@@ -41,6 +39,7 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
+  I2C_Init();
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -56,9 +55,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);
 
   /* Initialize the LCD */
- // I2C_HandleTypeDef hi2c1;
   hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 10000; // Configurar la velocidad de comunicación I2C a 100 kHz
+  hi2c1.Init.ClockSpeed = 100000; // Configurar la velocidad de comunicación I2C a 100 kHz
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
@@ -278,12 +276,14 @@ float HC_SR04_GetDistance(void)
 
 void Display_Alert(void)
 {
-  LCD_SetCursor(0, 0);
-  LCD_Print("ALERTA DE INTRUSO");
+	LCD_SetCursor(&hi2c1, 0, 0);
+	LCD_Print(&hi2c1, "ALERTA");
+
 }
 
 void Display_SafeZone(void)
 {
-  LCD_SetCursor(0, 0);
-  LCD_Print("Zona Protegida");
+	LCD_SetCursor(&hi2c1, 0, 0);
+	LCD_Print(&hi2c1, "Protegida");
+
 }

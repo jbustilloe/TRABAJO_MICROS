@@ -43,108 +43,93 @@
 #define LCD_EN_PIN GPIO_PIN_2
 #define LCD_EN_PORT GPIOB
 
-#define LCD_D4_PIN GPIO_PIN_12
+#define LCD_D4_PIN GPIO_PIN_4
 #define LCD_D4_PORT GPIOB
-#define LCD_D5_PIN GPIO_PIN_13
+#define LCD_D5_PIN GPIO_PIN_5
 #define LCD_D5_PORT GPIOB
-#define LCD_D6_PIN GPIO_PIN_14
+#define LCD_D6_PIN GPIO_PIN_6
 #define LCD_D6_PORT GPIOB
-#define LCD_D7_PIN GPIO_PIN_15
+#define LCD_D7_PIN GPIO_PIN_7
 #define LCD_D7_PORT GPIOB
 
+#define LCD_SDA_PIN GPIO_PIN_6
+#define LCD_SDA_PORT GPIOB
+#define LCD_SCL_PIN GPIO_PIN_7
+#define LCD_SCL_PORT GPIOB
+
+
 #define LCD_I2C_ADDRESS 0x27
+#define LCD_BACKLIGHT_ON 0x08
+#define LCD_BACKLIGHT_OFF 0x00
 
 void LCD_Init(I2C_HandleTypeDef *hi2c);
-void LCD_SendCommand(uint8_t command);
-void LCD_SendData(uint8_t data);
-void LCD_ClearDisplay(void);
-void LCD_ReturnHome(void);
-void LCD_SetCursor(uint8_t row, uint8_t col);
-void LCD_Print(const char *str);
+void LCD_SendCommand(I2C_HandleTypeDef *hi2c, uint8_t command);
+void LCD_SendData(I2C_HandleTypeDef *hi2c, uint8_t data);
+void LCD_ClearDisplay(I2C_HandleTypeDef *hi2c);
+void LCD_ReturnHome(I2C_HandleTypeDef *hi2c);
+void LCD_SetCursor(I2C_HandleTypeDef *hi2c, uint8_t row, uint8_t col);
+void LCD_Print(I2C_HandleTypeDef *hi2c, const char *str);
 
 void LCD_Init(I2C_HandleTypeDef *hi2c)
 {
   HAL_Delay(50);
-  LCD_SendCommand(0x33);
-  LCD_SendCommand(0x32);
-  LCD_SendCommand(LCD_FUNCTION_SET | LCD_4BIT_MODE | LCD_2LINE | LCD_5x8_DOTS);
-  LCD_SendCommand(LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF);
-  LCD_SendCommand(LCD_CLEAR_DISPLAY);
+  //uint8_t high_nibble = 0x30;
+  //uint8_t low_nibble = 0x03;
+  LCD_SendCommand(hi2c, 0x33);
+  LCD_SendCommand(hi2c, 0x32);
+  LCD_SendCommand(hi2c, LCD_FUNCTION_SET | LCD_4BIT_MODE | LCD_2LINE | LCD_5x8_DOTS);
+  LCD_SendCommand(hi2c, LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF);
+  LCD_SendCommand(hi2c, LCD_CLEAR_DISPLAY);
   HAL_Delay(2);
-  LCD_SendCommand(LCD_ENTRY_MODE_SET | LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT);
+  LCD_SendCommand(hi2c, LCD_ENTRY_MODE_SET | LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT);
+  LCD_SendCommand(hi2c, LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF | LCD_BACKLIGHT_ON);
 }
 
-void LCD_SendCommand(uint8_t command)
+void LCD_SendCommand(I2C_HandleTypeDef *hi2c, uint8_t command)
 {
   uint8_t high_nibble = (command & 0xF0);
   uint8_t low_nibble = (command & 0x0F) << 4;
 
-  HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_RW_PORT, LCD_RW_PIN, GPIO_PIN_RESET);
+  uint8_t data[4];
+  data[0] = high_nibble | LCD_BACKLIGHT_ON | LCD_EN_PIN;
+  data[1] = high_nibble | LCD_BACKLIGHT_OFF | LCD_EN_PIN;
+  data[2] = low_nibble | LCD_BACKLIGHT_ON | LCD_EN_PIN;
+  data[3] = low_nibble | LCD_BACKLIGHT_OFF | LCD_EN_PIN;
 
-  HAL_GPIO_WritePin(LCD_D4_PORT, LCD_D4_PIN, (high_nibble & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D5_PORT, LCD_D5_PIN, (high_nibble & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D6_PORT, LCD_D6_PIN, (high_nibble & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D7_PORT, LCD_D7_PIN, (high_nibble & 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_I2C_Master_Transmit(hi2c, LCD_I2C_ADDRESS, data, sizeof(data), HAL_MAX_DELAY);
 
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
   HAL_Delay(1);
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(LCD_D4_PORT, LCD_D4_PIN, (low_nibble & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D5_PORT, LCD_D5_PIN, (low_nibble & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D6_PORT, LCD_D6_PIN, (low_nibble & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D7_PORT, LCD_D7_PIN, (low_nibble & 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
-  HAL_Delay(1);
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-
-  HAL_Delay(2);
 }
 
-void LCD_SendData(uint8_t data)
+void LCD_SendData(I2C_HandleTypeDef *hi2c, uint8_t data)
 {
   uint8_t high_nibble = (data & 0xF0);
   uint8_t low_nibble = (data & 0x0F) << 4;
 
-  HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(LCD_RW_PORT, LCD_RW_PIN, GPIO_PIN_RESET);
+  uint8_t dataBuffer[4];
+  dataBuffer[0] = (high_nibble | LCD_BACKLIGHT_ON | LCD_EN_PIN | LCD_RS_PIN);
+  dataBuffer[1] = (high_nibble | LCD_BACKLIGHT_OFF | LCD_EN_PIN | LCD_RS_PIN);
+  dataBuffer[2] = (low_nibble | LCD_BACKLIGHT_ON | LCD_EN_PIN | LCD_RS_PIN);
+  dataBuffer[3] = (low_nibble | LCD_BACKLIGHT_OFF | LCD_EN_PIN | LCD_RS_PIN);
 
-  HAL_GPIO_WritePin(LCD_D4_PORT, LCD_D4_PIN, (high_nibble & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D5_PORT, LCD_D5_PIN, (high_nibble & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D6_PORT, LCD_D6_PIN, (high_nibble & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D7_PORT, LCD_D7_PIN, (high_nibble & 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  HAL_I2C_Master_Transmit(hi2c, LCD_I2C_ADDRESS, dataBuffer, sizeof(dataBuffer), HAL_MAX_DELAY);
 
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
   HAL_Delay(1);
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(LCD_D4_PORT, LCD_D4_PIN, (low_nibble & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D5_PORT, LCD_D5_PIN, (low_nibble & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D6_PORT, LCD_D6_PIN, (low_nibble & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LCD_D7_PORT, LCD_D7_PIN, (low_nibble & 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
-  HAL_Delay(1);
-  HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-
-  HAL_Delay(2);
 }
 
-void LCD_ClearDisplay(void)
+void LCD_ClearDisplay(I2C_HandleTypeDef *hi2c)
 {
-  LCD_SendCommand(LCD_CLEAR_DISPLAY);
+  LCD_SendCommand(hi2c, LCD_CLEAR_DISPLAY);
   HAL_Delay(2);
 }
 
-void LCD_ReturnHome(void)
+void LCD_ReturnHome(I2C_HandleTypeDef *hi2c)
 {
-  LCD_SendCommand(LCD_RETURN_HOME);
+  LCD_SendCommand(hi2c, LCD_RETURN_HOME);
   HAL_Delay(2);
 }
 
-void LCD_SetCursor(uint8_t row, uint8_t col)
+void LCD_SetCursor(I2C_HandleTypeDef *hi2c, uint8_t row, uint8_t col)
 {
   uint8_t address = 0x80;
 
@@ -154,14 +139,14 @@ void LCD_SetCursor(uint8_t row, uint8_t col)
   }
 
   address += col;
-  LCD_SendCommand(address);
+  LCD_SendCommand(hi2c, address);
 }
 
-void LCD_Print(const char *str)
+void LCD_Print(I2C_HandleTypeDef *hi2c, const char *str)
 {
   while (*str != '\0')
   {
-    LCD_SendData(*str++);
+    LCD_SendData(hi2c, *str++);
   }
 }
 
