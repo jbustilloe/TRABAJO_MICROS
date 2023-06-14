@@ -53,15 +53,19 @@ int main(void)
 
     if (distance > 0 && distance < DISTANCE_THRESHOLD)
     {
-      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
-      distance_timer = HAL_GetTick();
-    }
-    else
-    {
       if (HAL_GetTick() - distance_timer >= LED_timeout)
+      {
+        HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+      }
+      else
       {
         HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
       }
+    }
+    else
+    {
+      distance_timer = HAL_GetTick();
+      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
     }
   }
 }
@@ -137,9 +141,9 @@ void TIM_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 35999;      // Adjust the value based on your APB1 Timer clocks frequency
+  htim2.Init.Prescaler = 35999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 999;           // Adjust the value based on your desired interrupt frequency (1ms in this case)
+  htim2.Init.Period = 999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
