@@ -1,5 +1,7 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
+#include "i2c.h"
+#include "lcd_i2c.h"
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -9,11 +11,18 @@ void TIM_Init(void);
 void HC_SR04_Init(void);
 void HC_SR04_Trigger(void);
 float HC_SR04_GetDistance(void);
+void Display_Alert(void);
+void Display_SafeZone(void);
 
 /* Global Variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
 uint32_t distance_timer = 0;
 uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
+
+/* LCD I2C Handle */
+//extern I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c1;
+
 
 /* USER CODE BEGIN 0 */
 #define TRIGGER_PIN GPIO_PIN_10
@@ -46,6 +55,25 @@ int main(void)
   TIM_Init();
   HAL_TIM_Base_Start_IT(&htim2);
 
+  /* Initialize the LCD */
+ // I2C_HandleTypeDef hi2c1;
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 10000; // Configurar la velocidad de comunicación I2C a 100 kHz
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  LCD_Init(&hi2c1);
+
   /* Infinite loop */
   while (1)
   {
@@ -56,16 +84,19 @@ int main(void)
       if (HAL_GetTick() - distance_timer >= LED_timeout)
       {
         HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+        Display_Alert();
       }
       else
       {
         HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+        Display_SafeZone();
       }
     }
     else
     {
       distance_timer = HAL_GetTick();
       HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+      Display_SafeZone();
     }
   }
 }
@@ -87,9 +118,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 72;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLN = 144; // Configurar N para obtener una frecuencia de 72 MHz (APB1 Timer clocks)
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4; // Configurar P para obtener una frecuencia de 36 MHz (APB1 peripheral clocks)
+  RCC_OscInitStruct.PLL.PLLQ = 4; // Configurar Q para obtener una frecuencia de 18 MHz (APB2 peripheral clocks)
 
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -102,7 +133,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
@@ -133,6 +164,21 @@ void GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(OUTPUT_PORT, &GPIO_InitStruct);
+
+  /* Configure GPIO pins for I2C communication */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;   // Modo de salida en drenador abierto con resistencia de pull-up
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1; // Función alternativa 4 para I2C1
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;   // Modo de salida en drenador abierto con resistencia de pull-up
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1; // Función alternativa 4 para I2C1
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
 void TIM_Init(void)
@@ -228,4 +274,16 @@ float HC_SR04_GetDistance(void)
   distance = (pulse_duration * 0.0343) / 2;
 
   return distance;
+}
+
+void Display_Alert(void)
+{
+  LCD_SetCursor(0, 0);
+  LCD_Print("ALERTA DE INTRUSO");
+}
+
+void Display_SafeZone(void)
+{
+  LCD_SetCursor(0, 0);
+  LCD_Print("Zona Protegida");
 }
