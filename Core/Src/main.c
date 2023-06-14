@@ -1,4 +1,3 @@
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_hal.h"
 
@@ -13,6 +12,8 @@ float HC_SR04_GetDistance(void);
 
 /* Global Variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
+uint32_t distance_timer = 0;
+uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
 
 /* USER CODE BEGIN 0 */
 #define TRIGGER_PIN GPIO_PIN_10
@@ -41,6 +42,10 @@ int main(void)
   /* Initialize the HC-SR04 sensor */
   HC_SR04_Init();
 
+  /* Initialize and start the timer */
+  TIM_Init();
+  HAL_TIM_Base_Start_IT(&htim2);
+
   /* Infinite loop */
   while (1)
   {
@@ -49,10 +54,14 @@ int main(void)
     if (distance > 0 && distance < DISTANCE_THRESHOLD)
     {
       HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+      distance_timer = HAL_GetTick();
     }
     else
     {
-      HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+      if (HAL_GetTick() - distance_timer >= LED_timeout)
+      {
+        HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+      }
     }
   }
 }
@@ -74,9 +83,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 144;
+  RCC_OscInitStruct.PLL.PLLN = 72;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 5;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
 
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -88,10 +97,10 @@ void SystemClock_Config(void)
                                 RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -128,9 +137,9 @@ void TIM_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 1;
+  htim2.Init.Prescaler = 35999;      // Adjust the value based on your APB1 Timer clocks frequency
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = UINT32_MAX;
+  htim2.Init.Period = 999;           // Adjust the value based on your desired interrupt frequency (1ms in this case)
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
