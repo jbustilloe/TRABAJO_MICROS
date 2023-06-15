@@ -1,4 +1,7 @@
 #include "i2c.h"
+#include "stm32f4xx_hal.h"
+
+void Error_Handler(void);
 
 void I2C_Init(void)
 {
