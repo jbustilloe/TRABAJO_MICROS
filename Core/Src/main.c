@@ -85,6 +85,9 @@ uint32_t LED_timeout = 2000;  // Timeout de 3 segundos
 uint32_t adcValue = 0; // Variable para almacenar el valor del ADC
 uint32_t pwmValue = 0;
 
+uint8_t interruption_active = 0; //para verificar el estado del puslador para la interrupcion
+
+
 /*// Pin del LED
 #define LED_PIN GPIO_PIN_12
 #define LED_PORT GPIOD*/
@@ -92,10 +95,10 @@ uint32_t pwmValue = 0;
 /* USER CODE END 0 */
 
 /**
- *
   * @brief  The application entry point.
   * @retval int
   */
+
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -144,7 +147,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  if (interruption_active == 0) //Se verifica si la interrupcion esta activa antes de ejecutar el resto del codigo
+	  {
 	   // __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwmValue);
 	    if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
 	    {
@@ -183,6 +187,7 @@ int main(void)
 	       HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
 	     //  Display_SafeZone();
 	     }
+	  }
 
 	     HAL_Delay(10);
     /* USER CODE END WHILE */
@@ -465,7 +470,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PE13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD11 PD12 */
@@ -474,6 +479,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
