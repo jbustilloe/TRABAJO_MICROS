@@ -42,6 +42,7 @@ void Error_Handler(void);
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 I2C_HandleTypeDef hi2c1;
 
@@ -59,6 +60,7 @@ static void MX_TIM2_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -78,11 +80,13 @@ float HC_SR04_GetDistance(void);
 #define OUTPUT_PIN GPIO_PIN_12
 #define OUTPUT_PORT GPIOE
 #define DISTANCE_THRESHOLD 2
+#define BRIGHTNESS_THRESHOLD 50
 
 uint32_t distance_timer = 0;
-uint32_t LED_timeout = 2000;  // Timeout de 3 segundos
+uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
 
 uint32_t adcValue = 0; // Variable para almacenar el valor del ADC
+uint32_t ldrValue = 0; //para almacenar el valor del ADC (LDR)
 uint32_t pwmValue = 0;
 
 uint8_t interruption_active = 0; //para verificar el estado del puslador para la interrupcion
@@ -98,7 +102,6 @@ uint8_t interruption_active = 0; //para verificar el estado del puslador para la
   * @brief  The application entry point.
   * @retval int
   */
-
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -128,6 +131,7 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC1_Init();
   MX_TIM3_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   lcd_init();
 
@@ -139,6 +143,7 @@ int main(void)
   /* Start PWM generation on TIM2 */
 
   HAL_ADC_Start(&hadc1);
+  HAL_ADC_Start(&hadc2); //inicialización
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
@@ -160,33 +165,78 @@ int main(void)
 	        HAL_ADC_Start(&hadc1); // Reiniciar la conversión del ADC
 	    }
 
-	    //Detectar objetos con HC-SR
+	    //Medida de la luminosidad con ADC2
+	    if (HAL_ADC_PollForConversion(&hadc2, 100) == HAL_OK)
+	    {
+	    	ldrValue = HAL_ADC_GetValue(&hadc2);
 
-	  float distance = HC_SR04_GetDistance();
+	    	if (ldrValue < BRIGHTNESS_THRESHOLD)
+	    	{
+	    		float distance = HC_SR04_GetDistance();
 
-	     if (distance > 0 && distance < DISTANCE_THRESHOLD)
-	     {
-	       if (HAL_GetTick() - distance_timer >= LED_timeout)
-	       {
-	         HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
-	         //Display_Alert();
-	         //lcd_clear();
-	         //lcd_send_string ("ALERTA DE INTRUSO");
-	       }
-	       else
-	       {
-	         HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	        // Display_SafeZone();
-	        //lcd_clear();
-	       // lcd_send_string ("ZONA PROTEGIDA");
-	       }
-	     }
-	     else
-	     {
-	       distance_timer = HAL_GetTick();
-	       HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	     //  Display_SafeZone();
-	     }
+	    		if (distance > 0 && distance < DISTANCE_THRESHOLD)
+	    		{
+	    			if (HAL_GetTick() - distance_timer >= LED_timeout)
+	    			{
+	    				HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+	    					    			//Display_Alert();
+	    					    			//lcd_clear();
+	    					    			//lcd_send_string ("ALERTA DE INTRUSO");
+	    			}
+	    			else
+	    			{
+	    				HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+	    					    			//Display_SafeZone();
+	    					    			//lcd_clear();
+	    					    			//lcd_send_string ("ZONA PROTEGIDA");
+	    			}
+	    		}
+	    		else
+	    		{
+	    			distance_timer = HAL_GetTick();
+	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+	    				    		//Display_SafeZone();
+	    		}
+	    	}
+	    	else
+	    	{
+	    		HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+	    	}
+	    	HAL_ADC_Start(&hadc2); // Reiniciar la conversión del ADC
+	    }
+
+	    //Detectar objetos con HC-SR y medida de la luminosidad
+
+	    /*float distance = HC_SR04_GetDistance();
+
+	    if (HAL_ADC_PollForConversion(&hadc2, 100) == HAL_OK) //esperar a que la medida del LDR esté lista
+	    {
+	    	ldrValue = HAL_ADC_GetValue(&hadc2); //obtención del valor del LDR
+	    	if (distance > 0 && distance < DISTANCE_THRESHOLD && ldrValue < BRIGHTNESS_THRESHOLD)
+	    	{
+	    		if (HAL_GetTick() - distance_timer >= LED_timeout)
+	    		{
+	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
+	    			//Display_Alert();
+	    			//lcd_clear();
+	    			//lcd_send_string ("ALERTA DE INTRUSO");
+	    		}
+	    		else
+	    		{
+	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+	    			//Display_SafeZone();
+	    			//lcd_clear();
+	    			//lcd_send_string ("ZONA PROTEGIDA");
+	    		}
+	    	}
+	    	else
+	    	{
+	    		distance_timer = HAL_GetTick();
+	    		HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
+	    		//Display_SafeZone();
+	    	}
+	    }
+	    HAL_ADC_Stop(&hadc2);*/
 	  }
 
 	     HAL_Delay(10);
@@ -291,6 +341,58 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc2.Init.Resolution = ADC_RESOLUTION_8B;
+  hadc2.Init.ScanConvMode = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
