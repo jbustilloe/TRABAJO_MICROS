@@ -85,11 +85,11 @@ float HC_SR04_GetDistance(void);
 uint32_t distance_timer = 0;
 uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
 
-uint32_t adcValue = 0; // Variable para almacenar el valor del ADC
-uint32_t ldrValue = 0; //para almacenar el valor del ADC (LDR)
+uint32_t adcValue = 0; // Variable para almacenar el valor del ADC1 (ultrasonidos)
+uint32_t ldrValue = 0; // Variable para almacenar el valor del ADC2 (LDR)
 uint32_t pwmValue = 0;
 
-uint8_t interruption_active = 0; //para verificar el estado del puslador para la interrupcion
+uint8_t interruption_active = 0; // Verifica el estado del pulsador para la interrupción
 
 
 /*// Pin del LED
@@ -152,31 +152,33 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (interruption_active == 0) //Se verifica si la interrupcion esta activa antes de ejecutar el resto del codigo
+	  if (interruption_active == 0) //Se verifica si la interrupcion está activa antes de ejecutar el resto del código
 	  {
 	   // __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwmValue);
-	    if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
+
+		// Medida de la distancia con ADC1 (sensor de ultrasonidos)
+	    if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) // Espera a que la medida esté lista
 	    {
 	     adcValue = HAL_ADC_GetValue(&hadc1);
 
-	      // Ajustamos el valor de ADC (0-4095) al rango del PWM (0-720)
+	      // Ajustamos el valor del ADC (0-4095) al rango del PWM (0-720)
 	      pwmValue = (adcValue * 720) / 4095;
 	      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwmValue);
 	        HAL_ADC_Start(&hadc1); // Reiniciar la conversión del ADC
 	    }
 
-	    //Medida de la luminosidad con ADC2
-	    if (HAL_ADC_PollForConversion(&hadc2, 100) == HAL_OK)
+	    // Medida de la luminosidad con ADC2 (LDR)
+	    if (HAL_ADC_PollForConversion(&hadc2, 100) == HAL_OK) // Espera a que la medida esté lista
 	    {
-	    	ldrValue = HAL_ADC_GetValue(&hadc2);
+	    	ldrValue = HAL_ADC_GetValue(&hadc2); // Obtención del valor
 
-	    	if (ldrValue < BRIGHTNESS_THRESHOLD)
+	    	if (ldrValue < BRIGHTNESS_THRESHOLD) // Comparación con el umbral mínimo de luminosidad
 	    	{
 	    		float distance = HC_SR04_GetDistance();
 
-	    		if (distance > 0 && distance < DISTANCE_THRESHOLD)
+	    		if (distance > 0 && distance < DISTANCE_THRESHOLD) // Detección de presencia
 	    		{
-	    			if (HAL_GetTick() - distance_timer >= LED_timeout)
+	    			if (HAL_GetTick() - distance_timer >= LED_timeout) // Encender el LED durante un tiempo determinado
 	    			{
 	    				HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
 	    				//Display_Alert();
@@ -204,39 +206,6 @@ int main(void)
 	    	}
 	    	HAL_ADC_Start(&hadc2); // Reiniciar la conversión del ADC
 	    }
-
-	    //Detectar objetos con HC-SR y medida de la luminosidad
-
-	    /*float distance = HC_SR04_GetDistance();
-
-	    if (HAL_ADC_PollForConversion(&hadc2, 100) == HAL_OK) //esperar a que la medida del LDR esté lista
-	    {
-	    	ldrValue = HAL_ADC_GetValue(&hadc2); //obtención del valor del LDR
-	    	if (distance > 0 && distance < DISTANCE_THRESHOLD && ldrValue < BRIGHTNESS_THRESHOLD)
-	    	{
-	    		if (HAL_GetTick() - distance_timer >= LED_timeout)
-	    		{
-	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
-	    			//Display_Alert();
-	    			//lcd_clear();
-	    			//lcd_send_string ("ALERTA DE INTRUSO");
-	    		}
-	    		else
-	    		{
-	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	    			//Display_SafeZone();
-	    			//lcd_clear();
-	    			//lcd_send_string ("ZONA PROTEGIDA");
-	    		}
-	    	}
-	    	else
-	    	{
-	    		distance_timer = HAL_GetTick();
-	    		HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	    		//Display_SafeZone();
-	    	}
-	    }
-	    HAL_ADC_Stop(&hadc2);*/
 	  }
 
 	     HAL_Delay(10);
@@ -603,30 +572,30 @@ float HC_SR04_GetDistance(void)
   uint32_t end_time = 0;
   float distance = 0;
 
-  /* Send trigger pulse */
+  /* Envío de pulso de activación */
   HC_SR04_Trigger();
 
-  /* Wait for echo pulse to start */
+  /* Espera a que comience el pulso de eco */
   while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_RESET)
   {
   }
 
-  /* Measure the start time of the echo pulse */
+  /* Medida del tiempo en el que se inicia el envío */
   start_time = HAL_GetTick();
 
-  /* Wait for echo pulse to end */
+  /* Espera al fin del pulso de eco */
   while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_SET)
   {
   }
 
-  /* Measure the end time of the echo pulse */
+  /* Medida del tiempo en el que finaliza */
   end_time = HAL_GetTick();
 
-  /* Calculate the duration of the echo pulse */
+  /* Cálculo de la duración del pulso */
   uint32_t pulse_duration = end_time - start_time;
 
-  /* Calculate the distance based on the duration of the echo pulse and the speed of sound */
-  distance = (pulse_duration * 0.0343) / 2;
+  /* Cálculo de la distancia según la duración del pulso de eco y la velocidad del sonido */
+  distance = (pulse_duration * 0.0343) / 2; // Velocidad del sonido (cm/us) / 2 (ida y vuelta)
 
   return distance;
 }
