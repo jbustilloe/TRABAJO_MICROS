@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 void Error_Handler(void);
-#include "i2c-lcd.h"
+//#include "i2c-lcd.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +44,7 @@ void Error_Handler(void);
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 
-I2C_HandleTypeDef hi2c1;
+//I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -57,7 +57,7 @@ TIM_HandleTypeDef htim3;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_I2C1_Init(void);
+//static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC2_Init(void);
@@ -128,12 +128,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM2_Init();
-  MX_I2C1_Init();
+  //MX_I2C1_Init();
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
-  lcd_init();
+  //lcd_init();
 
   /*lcd_send_string ("ZONA PROTEGIDA");
   HAL_Delay(1000);
@@ -179,23 +179,23 @@ int main(void)
 	    			if (HAL_GetTick() - distance_timer >= LED_timeout)
 	    			{
 	    				HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_RESET);
-	    					    			//Display_Alert();
-	    					    			//lcd_clear();
-	    					    			//lcd_send_string ("ALERTA DE INTRUSO");
+	    				//Display_Alert();
+	    				//lcd_clear();
+	    				//lcd_send_string ("ALERTA DE INTRUSO");
 	    			}
 	    			else
 	    			{
 	    				HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	    					    			//Display_SafeZone();
-	    					    			//lcd_clear();
-	    					    			//lcd_send_string ("ZONA PROTEGIDA");
+	    				//Display_SafeZone();
+	    				//lcd_clear();
+	    				//lcd_send_string ("ZONA PROTEGIDA");
 	    			}
 	    		}
 	    		else
 	    		{
 	    			distance_timer = HAL_GetTick();
 	    			HAL_GPIO_WritePin(OUTPUT_PORT, OUTPUT_PIN, GPIO_PIN_SET);
-	    				    		//Display_SafeZone();
+	    			//Display_SafeZone();
 	    		}
 	    	}
 	    	else
@@ -401,8 +401,8 @@ static void MX_ADC2_Init(void)
   * @param None
   * @retval None
   */
-static void MX_I2C1_Init(void)
-{
+//static void MX_I2C1_Init(void)
+//{
 
   /* USER CODE BEGIN I2C1_Init 0 */
 
@@ -411,7 +411,7 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 1 */
 
   /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
+  /*hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
@@ -423,12 +423,12 @@ static void MX_I2C1_Init(void)
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
-  }
+  }*/
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
 
-}
+//}
 
 /**
   * @brief TIM2 Initialization Function
