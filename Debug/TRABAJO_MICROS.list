@@ -1094,7 +1094,7 @@ int main(void)
  8000d40:	d175      	bne.n	8000e2e <main+0x126>
 	  {
 
-		// Medida de la distancia con ADC1 (sensor de ultrasonidos)
+		// Ajuste con ADC1 (potenciómetro)
 	    if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) // Espera a que la medida esté lista
  8000d42:	2164      	movs	r1, #100	; 0x64
  8000d44:	483c      	ldr	r0, [pc, #240]	; (8000e38 <main+0x130>)

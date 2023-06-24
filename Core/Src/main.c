@@ -85,7 +85,7 @@ float HC_SR04_GetDistance(void);
 uint32_t distance_timer = 0;
 uint32_t LED_timeout = 3000;  // Timeout de 3 segundos
 
-uint32_t adcValue = 0; // Variable para almacenar el valor del ADC1 (ultrasonidos)
+uint32_t adcValue = 0; // Variable para almacenar el valor del ADC1 (potenciómetro)
 uint32_t ldrValue = 0; // Variable para almacenar el valor del ADC2 (LDR)
 uint32_t pwmValue = 0;
 
@@ -155,7 +155,7 @@ int main(void)
 	  if (interruption_active == 0) //Se verifica si la interrupcion está activa antes de ejecutar el resto del código
 	  {
 
-		// Medida de la distancia con ADC1 (sensor de ultrasonidos)
+		// Ajuste con ADC1 (potenciómetro)
 	    if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) // Espera a que la medida esté lista
 	    {
 	     adcValue = HAL_ADC_GetValue(&hadc1);
